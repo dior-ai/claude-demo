@@ -62,11 +62,20 @@ def make_http_tool(proxy: CredentialProxy) -> Tool:
     return Tool(
         name="http_request",
         description=(
-            "Make an HTTP request via the credential proxy. "
-            "Use placeholder strings of the form ${SECRET_NAME} in headers "
-            "or body — the proxy substitutes them with real secret values, "
-            "but ONLY if the target host is on the allowlist. Off-allowlist "
-            "hosts are blocked before any secret is read."
+            "Make an HTTP request via the credential proxy.\n\n"
+            "AUTH IS HANDLED FOR YOU. When a request needs a secret "
+            "(API key, bearer token, etc.), pass a placeholder of the "
+            "EXACT form ${SECRET_NAME} — with literal dollar sign and "
+            "curly braces — anywhere in headers or the request body. "
+            "The proxy substitutes the real value at send time, but "
+            "ONLY if the target host is on the allowlist.\n\n"
+            "DO NOT try to resolve the placeholder yourself. DO NOT "
+            "guess the secret. DO NOT use 'YOUR_TOKEN_HERE' or any "
+            "other stand-in. Pass the literal placeholder verbatim — "
+            "for example, 'Authorization: Bearer ${WIDGETS_TOKEN}' is "
+            "exactly the string to send. The platform handles the "
+            "rest. Off-allowlist hosts are refused before any secret "
+            "is read, so no secret can leak via a bad target."
         ),
         input_schema={
             "type": "object",
