@@ -107,6 +107,14 @@ case "$CMD" in
     "$PY" -m claude_demo redteam
     ;;
 
+  ui)
+    if ! "$PY" -c "import textual" 2>/dev/null; then
+      echo ">>> Installing textual (one-time, ~10s)..."
+      "$PY" -m pip install -e ".[ui]" --quiet
+    fi
+    "$PY" -m claude_demo ui
+    ;;
+
   -h | --help | help)
     cat <<'USAGE'
 Bastion demo launcher.
@@ -118,6 +126,7 @@ Usage:
   ./demo.sh openai             OpenAI-driven demo with prompt-injection test
                                  (requires OPENAI_API_KEY)
   ./demo.sh redteam            Fire 20+ adversarial scenarios at the runtime
+  ./demo.sh ui                 Open the Textual operator console
   ./demo.sh audit              Pretty-print the most recent audit log
   ./demo.sh tests              Run the full unit test suite
 USAGE

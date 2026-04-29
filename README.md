@@ -29,8 +29,9 @@ Other modes:
 ./demo.sh gov-airgapped     # same plan, air-gapped policy (every step blocked)
 ./demo.sh openai            # OpenAI-driven demo with a prompt-injection test
 ./demo.sh redteam           # fire 20+ adversarial scenarios; verify all blocked
+./demo.sh ui                # open the Textual operator console
 ./demo.sh audit             # pretty-print the most recent audit log
-./demo.sh tests             # run the unit test suite (89 cases)
+./demo.sh tests             # run the unit test suite (98 cases)
 ```
 
 The `openai` mode needs `OPENAI_API_KEY`. GPT picks the trajectory
@@ -137,6 +138,33 @@ runner tests which use fake clients to assert each driver's loop fires
 the same `PreToolUse` / `PostToolUse` / `TaskComplete` hooks in the
 same order. Swapping the model is one constructor call; the safety
 story does not change.
+
+## Operator console (TUI)
+
+`./demo.sh ui` opens a Textual-based operator console — a real visual
+interface that runs in the same terminal you already have open, no
+browser, no Node, no build pipeline. Three panes:
+
+- **Left**: every audit log under `runs/`, newest first, with policy +
+  event count + green/red status badge per run.
+- **Center**: run summary card (run_id, policy, started, ended,
+  errors) and a per-event table with timestamp, step, event type
+  (colour-coded), actor, tool, and a one-line payload summary.
+- **Bottom right**: the full JSON of the currently-selected event,
+  pretty-printed.
+
+Key bindings:
+
+- `↑` / `↓` — browse runs / events
+- `D` — fire the cred-safety demo (results appear on next refresh)
+- `T` — fire the red-team suite
+- `R` — refresh the run list
+- `Q` — quit
+
+This is the visual surface for showing the platform to non-engineers.
+A demo run looks like an enterprise observability product (Splunk /
+Datadog) without committing to one — and it's the same audit log a
+real SIEM would consume.
 
 ## Red-team suite — verifiably survives attack
 

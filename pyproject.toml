@@ -34,6 +34,10 @@ llm = [
 ]
 anthropic = ["anthropic>=0.45.0"]
 openai = ["openai>=1.40.0"]
+# Operator console — Textual TUI for browsing runs and audit events.
+ui = [
+    "textual>=0.80.0",
+]
 
 [project.scripts]
 claude-demo = "claude_demo.cli.__main__:main"
