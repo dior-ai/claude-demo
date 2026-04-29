@@ -141,6 +141,10 @@ story does not change.
 
 ## Operator console (TUI)
 
+<p align="center">
+  <img src="docs/screenshots/operator-console.svg" alt="Bastion operator console — TUI screenshot" width="900">
+</p>
+
 `./demo.sh ui` opens a Textual-based operator console — a real visual
 interface that runs in the same terminal you already have open, no
 browser, no Node, no build pipeline. Three panes:
@@ -278,35 +282,6 @@ tests/                     89 cases, stdlib unittest
 ```
 
 ## Roadmap
-
-**T1 — substrate (shipped)**
-
-Policy-as-code, JSONL audit, credential proxy, MCP integration shape,
-scripted runtime, rich CLI, audit viewer, three policy profiles
-(`default` / `prod-restricted` / `gov-airgapped`), architecture +
-threat-model docs. ~1 second end-to-end demo, no API key required.
-
-**T1.5 — adversarial proof + provider agnosticism (shipped)**
-
-OpenAI agent driver alongside Claude (proves the substrate is
-provider-agnostic) plus a **red-team suite** — 20+ adversarial
-scenarios run against the substrate, with the audit log proving
-every one is blocked. Output: `20/20 attacks blocked, 0 secrets
-leaked`. That artifact converts "looks correct" to "verifiably
-survives attack." 89 unit tests, all green without either LLM key.
-
-**T2 — integrations (~1 week)**
-
-Bubblewrap + Seatbelt sandbox backends, Playwright-based browser tool
-gated through the same hooks, sub-agent / multi-agent primitive, real
-MCP transport (stdio / HTTP).
-
-**T3 — production posture (~1 month)**
-
-OpenTelemetry traces, mTLS to MCP servers, multi-tenancy + RBAC,
-SIEM-shipper recipe (Fluent Bit / Vector → Splunk / Elastic),
-Dockerfile + compose stack, 24-hour soak test, external pen-test
-report.
 
 ## How T1 maps to enterprise platform pillars
 
