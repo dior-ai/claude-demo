@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "claude-demo"
+version = "0.2.0"
+description = "Hook-driven secure agent runtime — substrate for enterprise AI automation."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+    { name = "dior-ai", email = "fullstack.engineer418@gmail.com" },
+]
+keywords = ["agents", "sandbox", "hooks", "mcp", "audit", "policy"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "rich>=13.0",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+llm = [
+    "anthropic>=0.45.0",
+]
+
+[project.scripts]
+claude-demo = "claude_demo.cli.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["claude_demo*"]

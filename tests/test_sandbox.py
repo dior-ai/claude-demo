@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.sandbox import Sandbox
+from claude_demo.sandbox import Sandbox
 
 
 class TestSandbox(unittest.TestCase):

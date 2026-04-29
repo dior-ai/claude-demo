@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import unittest
 
-from src.workflow import Workflow
+from claude_demo.core.workflow import Workflow
 
 
 class TestWorkflow(unittest.TestCase):

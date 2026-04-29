@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import unittest
 
-from src.hooks import HookEngine, PreToolUseEvent, ToolBlocked
-from src.scripted import ScriptedPlan, ScriptedRunner
-from src.tools import Tool
+from claude_demo.core.hooks import HookEngine, PreToolUseEvent, ToolBlocked
+from claude_demo.agents.scripted import ScriptedPlan, ScriptedRunner
+from claude_demo.tools.base import Tool
 
 
 def _echo_tool() -> Tool:

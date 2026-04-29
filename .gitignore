@@ -10,3 +10,6 @@ venv/
 .DS_Store
 *.log
 sandbox_runs/
+runs/
+build/
+dist/

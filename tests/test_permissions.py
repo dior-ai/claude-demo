@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import unittest
 
-from src.hooks import HookEngine, PreToolUseEvent
-from src.permissions import Decision, PermissionPolicy
+from claude_demo.core.hooks import HookEngine, PreToolUseEvent
+from claude_demo.core.permissions import Decision, PermissionPolicy
 
 
 class TestPermissionPolicy(unittest.TestCase):

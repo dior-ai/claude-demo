@@ -13,7 +13,7 @@ import threading
 import unittest
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-from src.cred_proxy import CredentialProxy
+from claude_demo.proxy.credential import CredentialProxy
 
 
 class _RecordingHandler(BaseHTTPRequestHandler):

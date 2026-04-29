@@ -6,8 +6,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.sandbox import Sandbox
-from src.tools import make_code_runner, make_file_tool
+from claude_demo.sandbox import Sandbox
+from claude_demo.tools import make_code_runner, make_file_tool
 
 
 class TestCodeRunner(unittest.TestCase):

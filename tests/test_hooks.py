@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import unittest
 
-from src.hooks import (
+from claude_demo.core.hooks import (
     HookEngine,
     PostToolUseEvent,
     PreToolUseEvent,

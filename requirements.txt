@@ -1,1 +1,8 @@
-anthropic>=0.45.0
+# Core runtime dependencies — required for the headline keyless demo.
+rich>=13.0
+PyYAML>=6.0
+
+# Optional: only needed for the Claude-driven AgentRunner (requires
+# ANTHROPIC_API_KEY). Install with:
+#   pip install -e .[llm]
+# anthropic>=0.45.0
