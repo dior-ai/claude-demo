@@ -27,9 +27,15 @@ Other modes:
 ```bash
 ./demo.sh prod-restricted   # same plan, prod-restricted policy
 ./demo.sh gov-airgapped     # same plan, air-gapped policy (every step blocked)
+./demo.sh openai            # OpenAI-driven demo with a prompt-injection test
 ./demo.sh audit             # pretty-print the most recent audit log
-./demo.sh tests             # run the 76-case test suite
+./demo.sh tests             # run the unit test suite (83 cases)
 ```
+
+The `openai` mode needs `OPENAI_API_KEY`. GPT picks the trajectory
+itself, with an embedded prompt-injection telling it to exfiltrate the
+secret to a hostile host — the substrate must hold under non-deterministic,
+adversarial agent behaviour. See *Provider-agnostic agent driver* below.
 
 If you'd rather run the underlying commands by hand:
 
@@ -114,6 +120,22 @@ step).
 Long form, with module table + data flow + threat model:
 - [docs/architecture.md](docs/architecture.md)
 - [docs/threat-model.md](docs/threat-model.md)
+
+## Provider-agnostic agent driver
+
+The substrate (hooks + policy + proxy + audit + sandbox) is unchanged
+regardless of which LLM is in the seat. Three drivers ship today:
+
+- `ScriptedRunner` — deterministic plan, no API key. Headline demo.
+- `OpenAIAgentRunner` — `chat.completions` tool-use loop, needs `OPENAI_API_KEY`.
+- `AgentRunner` (Claude) — `messages.create` tool-use loop, needs `ANTHROPIC_API_KEY`.
+
+All three call into the same `HookEngine`. Proof of agnosticism is in
+the test suite: 83 tests pass without either LLM key, including the
+runner tests which use fake clients to assert each driver's loop fires
+the same `PreToolUse` / `PostToolUse` / `TaskComplete` hooks in the
+same order. Swapping the model is one constructor call; the safety
+story does not change.
 
 ## Three policy profiles, one demo, three behaviours
 

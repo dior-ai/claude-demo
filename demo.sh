@@ -90,6 +90,19 @@ case "$CMD" in
     "$PY" -m claude_demo run cred-safety --policy "$CMD"
     ;;
 
+  openai)
+    if [ -z "${OPENAI_API_KEY:-}" ]; then
+      echo "ERROR: OPENAI_API_KEY is not set." >&2
+      echo "  export OPENAI_API_KEY=sk-..." >&2
+      exit 1
+    fi
+    if ! "$PY" -c "import openai" 2>/dev/null; then
+      echo ">>> Installing openai SDK (one-time)..."
+      "$PY" -m pip install -e ".[openai]" --quiet
+    fi
+    "$PY" -m examples.optional_openai_demo
+    ;;
+
   -h | --help | help)
     cat <<'USAGE'
 Bastion demo launcher.
@@ -98,8 +111,10 @@ Usage:
   ./demo.sh                    Run the cred-safety demo with the default policy
   ./demo.sh prod-restricted    Same demo, prod-restricted policy
   ./demo.sh gov-airgapped      Same demo, air-gapped policy (every step blocked)
+  ./demo.sh openai             OpenAI-driven demo with prompt-injection test
+                                 (requires OPENAI_API_KEY)
   ./demo.sh audit              Pretty-print the most recent audit log
-  ./demo.sh tests              Run the full unit test suite (76 cases)
+  ./demo.sh tests              Run the full unit test suite
 USAGE
     ;;
 

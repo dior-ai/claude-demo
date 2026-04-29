@@ -27,9 +27,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Either provider works; install whichever LLM you have a key for.
 llm = [
     "anthropic>=0.45.0",
+    "openai>=1.40.0",
 ]
+anthropic = ["anthropic>=0.45.0"]
+openai = ["openai>=1.40.0"]
 
 [project.scripts]
 claude-demo = "claude_demo.cli.__main__:main"
