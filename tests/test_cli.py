@@ -8,11 +8,26 @@ from __future__ import annotations
 
 import io
 import json
+import re
 import tempfile
 import unittest
 from pathlib import Path
 
 from claude_demo.cli.__main__ import main as cli_main
+
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
+
+
+def strip_ansi(text: str) -> str:
+    """Remove ANSI color/style escape sequences for substring matching.
+
+    Whether Rich emits ANSI depends on terminal detection — running the
+    tests under a real TTY (MINGW64, modern Windows Terminal) emits codes
+    even when the output file is a StringIO, because the global Console
+    inferred its color system at import time. Stripping in the test keeps
+    the assertions robust across environments.
+    """
+    return _ANSI_RE.sub("", text)
 
 
 class TestAuditView(unittest.TestCase):
@@ -58,6 +73,9 @@ class TestAuditView(unittest.TestCase):
     def _run(self, argv: list[str]) -> tuple[int, str]:
         # Capture rich Console output by redirecting its file. Force a wide
         # terminal so the table doesn't truncate event names mid-string.
+        # ANSI codes are stripped from the returned string — the global
+        # Console infers its color system at import time, and that
+        # detection sticks even when we redirect to a StringIO.
         from claude_demo.ui import console as ui_console
 
         buf = io.StringIO()
@@ -70,7 +88,7 @@ class TestAuditView(unittest.TestCase):
         finally:
             ui_console._console.file = original_file
             ui_console._console._width = original_width
-        return rc, buf.getvalue()
+        return rc, strip_ansi(buf.getvalue())
 
     def test_view_unfiltered(self) -> None:
         rc, out = self._run(["audit", "view", str(self.path)])

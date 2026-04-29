@@ -72,12 +72,17 @@ def view_command(args: argparse.Namespace) -> int:
         )
 
     console.print(table)
+    # highlight=False so Rich doesn't auto-style the integers and identifiers
+    # in this summary line. Auto-highlight breaks the message into separate
+    # ANSI chunks ("\x1b[..m3\x1b[0m record(s) shown..."), which makes the
+    # text fragile to grep against in tests and downstream tooling.
     console.print(
         f"[dim]{len(matched)} record(s) shown of {len(records)} total"
         + (f" — filtered by event='{args.filter_event}'" if args.filter_event else "")
         + (f" tool='{args.filter_tool}'" if args.filter_tool else "")
         + (f" corr='{args.filter_correlation}'" if args.filter_correlation else "")
-        + "[/dim]"
+        + "[/dim]",
+        highlight=False,
     )
     return 0
 
