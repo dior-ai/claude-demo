@@ -1,4 +1,6 @@
-# Hook-Driven Secure Agent Runtime
+# Bastion
+
+> **Hook-driven secure agent runtime — the substrate for enterprise AI automation.**
 
 A platform-shaped substrate for enterprise AI automation: lifecycle
 hooks gate every tool call, a credential-injection proxy keeps secrets
@@ -7,11 +9,7 @@ and policy-as-code controls what tools can run. The agent driving the
 trajectory is interchangeable — a deterministic scripted plan today, a
 Claude-driven loop when an `ANTHROPIC_API_KEY` is available.
 
-The shape is grounded in the open-source projects this is meant to
-slot underneath: hooks from `claude-code-hooks`, OS-style isolation
-from `sandbox-runtime`, deny-by-default + credential proxy from
-`zerobox`, workflow shape from `meridian`, agent-loop ergonomics from
-`claudeclaw / openclaw`.
+**Status:** T1 (substrate) shipped — see *Roadmap* below for T2 / T3.
 
 ## TL;DR — run the headline demo in 30 seconds
 
@@ -195,15 +193,41 @@ runs/                  gitignored; per-run JSONL audit logs
 tests/                 76 cases, stdlib unittest
 ```
 
-## What ships in T1 vs. what's deferred
+## Roadmap
 
-T1 (this commit) ships the substrate: policy, audit, MCP shape,
-credential proxy, scripted runtime, rich CLI, audit viewer, three
-policy profiles, architecture + threat-model docs.
+**T1 — substrate (shipped, this commit)**
 
-T2 plans (next round, when the demo lands well): bubblewrap +
-Seatbelt sandbox backends, browser automation via Playwright,
-sub-agent / multi-agent primitive, real MCP server transport.
+Policy-as-code, JSONL audit, credential proxy, MCP integration shape,
+scripted runtime, rich CLI, audit viewer, three policy profiles
+(`default` / `prod-restricted` / `gov-airgapped`), architecture +
+threat-model docs. 76 unit tests, ~1 second end-to-end demo, no API
+key required.
 
-T3 (hardening): OpenTelemetry hook stubs, Dockerfile + compose,
-audit-viewer TUI on `textual`, SIEM-shipper recipe.
+**T2 — integrations + adversarial proof (~1 week)**
+
+Bubblewrap + Seatbelt sandbox backends, Playwright-based browser tool
+gated through the same hooks, sub-agent / multi-agent primitive, real
+MCP transport (stdio / HTTP). Plus a **red-team suite** — 20+
+adversarial scenarios run against the substrate, with the audit log
+proving every one is blocked. That output shifts the demo from "looks
+correct" to "verifiably survives attack".
+
+**T3 — production posture (~1 month)**
+
+OpenTelemetry traces, mTLS to MCP servers, multi-tenancy + RBAC,
+SIEM-shipper recipe (Fluent Bit / Vector → Splunk / Elastic),
+Dockerfile + compose stack, 24-hour soak test, external pen-test
+report.
+
+## How T1 maps to enterprise platform pillars
+
+| Pillar                       | T1 status | Where it lives                                                           |
+| ---------------------------- | --------- | ------------------------------------------------------------------------ |
+| MCP / A2A integrations       | ✅ shape  | `src/claude_demo/mcp/` (real JSON-RPC, transport-swappable)              |
+| LLM tool orchestration       | ✅        | `agents/scripted.py` + `agents/claude.py` share the hook engine          |
+| Browser automation           | ❌ T2     | `examples/browser_research/` placeholder                                 |
+| Code-execution sandboxes     | ✅ + T2   | `sandbox.py` (subprocess); bubblewrap / Seatbelt land in T2              |
+| Multi-agent workflows        | △         | `core/workflow.py` ships; sub-agent primitive in T2                      |
+| Security & compliance        | ✅        | `policy/`, `audit/`, `proxy/`, `docs/threat-model.md`                    |
+| Government-scale (air-gap)   | ✅        | `policies/gov-airgapped.yaml` — default-deny, no egress, no code exec    |
+| Fundable enterprise feel     | ✅        | `pyproject.toml`, `docs/architecture.md`, three deployment profiles, CLI |
