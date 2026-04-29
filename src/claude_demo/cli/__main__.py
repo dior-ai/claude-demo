@@ -1,9 +1,10 @@
 """CLI entry point: ``python -m claude_demo``.
 
-Two subcommands today:
+Three subcommands today:
 
-  run    runs an example end-to-end (the headline operator surface)
-  audit  audit-log operations (currently: ``view``)
+  run      runs an example end-to-end (the headline operator surface)
+  audit    audit-log operations (currently: ``view``)
+  redteam  fires 20+ adversarial scenarios at the runtime; pass/fail
 
 Designed to feel like an ops tool. Every command emits structured
 output through ``ui.console`` so screenshots and screen-recordings
@@ -16,6 +17,7 @@ import argparse
 import sys
 
 from .audit import register_audit_subparser
+from .redteam import register_redteam_subparser
 from .run import register_run_subparser
 
 
@@ -27,6 +29,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
     register_run_subparser(sub)
     register_audit_subparser(sub)
+    register_redteam_subparser(sub)
     return parser
 
 

@@ -103,6 +103,10 @@ case "$CMD" in
     "$PY" -m examples.optional_openai_demo
     ;;
 
+  redteam)
+    "$PY" -m claude_demo redteam
+    ;;
+
   -h | --help | help)
     cat <<'USAGE'
 Bastion demo launcher.
@@ -113,6 +117,7 @@ Usage:
   ./demo.sh gov-airgapped      Same demo, air-gapped policy (every step blocked)
   ./demo.sh openai             OpenAI-driven demo with prompt-injection test
                                  (requires OPENAI_API_KEY)
+  ./demo.sh redteam            Fire 20+ adversarial scenarios at the runtime
   ./demo.sh audit              Pretty-print the most recent audit log
   ./demo.sh tests              Run the full unit test suite
 USAGE

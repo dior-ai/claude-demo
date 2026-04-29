@@ -28,8 +28,9 @@ Other modes:
 ./demo.sh prod-restricted   # same plan, prod-restricted policy
 ./demo.sh gov-airgapped     # same plan, air-gapped policy (every step blocked)
 ./demo.sh openai            # OpenAI-driven demo with a prompt-injection test
+./demo.sh redteam           # fire 20+ adversarial scenarios; verify all blocked
 ./demo.sh audit             # pretty-print the most recent audit log
-./demo.sh tests             # run the unit test suite (83 cases)
+./demo.sh tests             # run the unit test suite (89 cases)
 ```
 
 The `openai` mode needs `OPENAI_API_KEY`. GPT picks the trajectory
@@ -131,11 +132,29 @@ regardless of which LLM is in the seat. Three drivers ship today:
 - `AgentRunner` (Claude) — `messages.create` tool-use loop, needs `ANTHROPIC_API_KEY`.
 
 All three call into the same `HookEngine`. Proof of agnosticism is in
-the test suite: 83 tests pass without either LLM key, including the
+the test suite: 89 tests pass without either LLM key, including the
 runner tests which use fake clients to assert each driver's loop fires
 the same `PreToolUse` / `PostToolUse` / `TaskComplete` hooks in the
 same order. Swapping the model is one constructor call; the safety
 story does not change.
+
+## Red-team suite — verifiably survives attack
+
+`./demo.sh redteam` (or `python -m claude_demo redteam`) fires 20+
+adversarial scenarios at the runtime. Each is checked against the
+defense layer that should catch it; a scenario passes iff the right
+layer fires AND no real secret value appears in any output or audit
+URL. Coverage:
+
+- **Policy layer (6 scenarios)**: `import socket`, `urllib.request`, `requests`, `subprocess`, `os.system`, and a dynamic `exec()` hiding a forbidden import.
+- **Proxy layer (5 scenarios)**: exfil to `evil.local`, `attacker.example.com`, a subdomain-confusion variant (`api.local.attacker.com`), a raw-IP variant, and an unknown placeholder name.
+- **Tool layer (7 scenarios)**: relative / absolute / mixed path traversal, undefined ops, empty / malformed inputs, unknown-tool invocation.
+- **Sandbox layer (2 scenarios)**: infinite-loop timeout (killed); env-var scrub (call runs but no host secret appears).
+
+Output is a green `PASS` table with a `20/20 attacks blocked. 0 secrets
+leaked.` summary. This is the artifact that converts "looks correct"
+to "verifiably survives attack." Adding a new scenario is one entry in
+`src/claude_demo/redteam/scenarios.py`.
 
 ## Three policy profiles, one demo, three behaviours
 
@@ -216,36 +235,43 @@ src/claude_demo/
   proxy/       credential injection proxy
   tools/       base / code / file / http
   mcp/         client + stub_server + adapter
-  agents/      scripted, claude
+  agents/      scripted, claude, openai
+  redteam/     20+ adversarial scenarios + runner
   ui/          rich renderers
   cli/         python -m claude_demo entry points
 examples/
-  cred_safety/         headline T1 demo
-  browser_research/    T2 placeholder
-  multi_agent_mcp/     T2 placeholder
+  cred_safety/             headline T1 demo
+  browser_research/        T2 placeholder
+  multi_agent_mcp/         T2 placeholder
   optional_claude_demo.py
-runs/                  gitignored; per-run JSONL audit logs
-tests/                 76 cases, stdlib unittest
+  optional_openai_demo.py  GPT-driven demo with prompt-injection test
+runs/                      gitignored; per-run JSONL audit logs
+tests/                     89 cases, stdlib unittest
 ```
 
 ## Roadmap
 
-**T1 — substrate (shipped, this commit)**
+**T1 — substrate (shipped)**
 
 Policy-as-code, JSONL audit, credential proxy, MCP integration shape,
 scripted runtime, rich CLI, audit viewer, three policy profiles
 (`default` / `prod-restricted` / `gov-airgapped`), architecture +
-threat-model docs. 76 unit tests, ~1 second end-to-end demo, no API
-key required.
+threat-model docs. ~1 second end-to-end demo, no API key required.
 
-**T2 — integrations + adversarial proof (~1 week)**
+**T1.5 — adversarial proof + provider agnosticism (shipped)**
+
+OpenAI agent driver alongside Claude (proves the substrate is
+provider-agnostic) plus a **red-team suite** — 20+ adversarial
+scenarios run against the substrate, with the audit log proving
+every one is blocked. Output: `20/20 attacks blocked, 0 secrets
+leaked`. That artifact converts "looks correct" to "verifiably
+survives attack." 89 unit tests, all green without either LLM key.
+
+**T2 — integrations (~1 week)**
 
 Bubblewrap + Seatbelt sandbox backends, Playwright-based browser tool
 gated through the same hooks, sub-agent / multi-agent primitive, real
-MCP transport (stdio / HTTP). Plus a **red-team suite** — 20+
-adversarial scenarios run against the substrate, with the audit log
-proving every one is blocked. That output shifts the demo from "looks
-correct" to "verifiably survives attack".
+MCP transport (stdio / HTTP).
 
 **T3 — production posture (~1 month)**
 
