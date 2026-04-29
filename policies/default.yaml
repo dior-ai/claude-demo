@@ -1,0 +1,34 @@
+# Default policy — permissive. Suitable for development and the headline
+# credential-safety demo. Production deployments should pick one of the
+# stricter policies (prod-restricted.yaml, gov-airgapped.yaml).
+
+version: 1
+metadata:
+  name: default
+  description: Permissive development policy.
+
+# Tool-level rules. Match by tool name; ``default`` applies if no rule matches.
+# Verdicts: allow | confirm | deny.
+tools:
+  default:
+    decision: allow
+
+# Egress allowlist for the credential proxy. The proxy refuses to read or
+# substitute any secret unless the target host is on this list.
+http_allowlist:
+  - api.local
+
+# Code patterns blocked when ``code_runner`` is invoked. The runtime never
+# sees these — the policy hook short-circuits with a descriptive error so
+# the agent can re-plan.
+forbidden_code_patterns:
+  - pattern: "import socket"
+    reason: network access is forbidden in the sandbox
+  - pattern: "urllib.request"
+    reason: network access is forbidden in the sandbox
+  - pattern: "import requests"
+    reason: network access is forbidden in the sandbox
+  - pattern: "subprocess"
+    reason: spawning subprocesses is forbidden in the sandbox
+  - pattern: "os.system"
+    reason: shell escape is forbidden in the sandbox

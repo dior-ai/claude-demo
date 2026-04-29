@@ -1,0 +1,41 @@
+# Government / air-gapped policy — explicit allowlist, no HTTP egress at
+# all, code execution and bash both denied. ``file_tool`` is the only
+# action permitted by default. Demonstrates how a single YAML swap shifts
+# the runtime from a permissive dev profile to a posture acceptable for
+# air-gapped environments.
+
+version: 1
+metadata:
+  name: gov-airgapped
+  description: Air-gapped policy — read-only file ops only, no network, no code execution.
+
+tools:
+  # Default-deny: anything not explicitly allowed is refused.
+  default:
+    decision: deny
+  file_tool:
+    decision: allow
+  code_runner:
+    decision: deny
+  http_request:
+    decision: deny
+  bash:
+    decision: deny
+
+# Empty allowlist = no host can be contacted, even by ``http_request``
+# (which is also denied above; defence in depth).
+http_allowlist: []
+
+# Belt-and-braces: even if a future operator flips ``code_runner`` to
+# allow, these patterns stay forbidden.
+forbidden_code_patterns:
+  - pattern: "import socket"
+    reason: no network in air-gapped policy
+  - pattern: "import urllib"
+    reason: no network in air-gapped policy
+  - pattern: "import requests"
+    reason: no network in air-gapped policy
+  - pattern: "subprocess"
+    reason: no subprocess execution in air-gapped policy
+  - pattern: "os.system"
+    reason: no shell escape in air-gapped policy

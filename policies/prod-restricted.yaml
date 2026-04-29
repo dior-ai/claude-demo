@@ -1,0 +1,36 @@
+# Production policy — code execution requires operator confirmation,
+# bash is denied outright, and the egress allowlist holds a single
+# corporate-internal API. Run this in CI against the demo to prove
+# the policy plumbing actually changes behaviour.
+
+version: 1
+metadata:
+  name: prod-restricted
+  description: Production policy — confirm before code, deny bash, single internal API.
+
+tools:
+  default:
+    decision: allow
+  code_runner:
+    decision: confirm
+  bash:
+    decision: deny
+
+http_allowlist:
+  - internal-api.corp
+
+forbidden_code_patterns:
+  - pattern: "import socket"
+    reason: network access is forbidden in the sandbox
+  - pattern: "urllib.request"
+    reason: network access is forbidden in the sandbox
+  - pattern: "import requests"
+    reason: network access is forbidden in the sandbox
+  - pattern: "subprocess"
+    reason: spawning subprocesses is forbidden in the sandbox
+  - pattern: "os.system"
+    reason: shell escape is forbidden in the sandbox
+  - pattern: "eval("
+    reason: dynamic eval is forbidden under prod-restricted
+  - pattern: "exec("
+    reason: dynamic exec is forbidden under prod-restricted
