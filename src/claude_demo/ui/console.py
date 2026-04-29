@@ -81,7 +81,7 @@ def print_step_event(
     pieces = [
         f"[cyan][{step}][/cyan]",
         f"[bold]{tool}[/bold]",
-        f"[yellow]→ {decision}[/yellow]",
+        f"[yellow]-> {decision}[/yellow]",
         marker,
     ]
     if duration_ms is not None:
@@ -99,7 +99,7 @@ def print_step_result(*, step: int, body_preview: str) -> None:
     head = body_preview.splitlines()[0] if body_preview else ""
     if len(head) > 200:
         head = head[:200] + "..."
-    _console.print(f"      [dim]› {head}[/dim]")
+    _console.print(f"      [dim]>> {head}[/dim]")
 
 
 def print_audit_summary(
