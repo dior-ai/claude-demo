@@ -11,18 +11,31 @@ Claude-driven loop when an `ANTHROPIC_API_KEY` is available.
 
 **Status:** T1 (substrate) shipped — see *Roadmap* below for T2 / T3.
 
-## TL;DR — run the headline demo in 30 seconds
+## TL;DR — two steps to a visual test
 
-No API key, no external network. Stdlib + `rich` + `PyYAML` only.
+No API key, no external network. The launcher script auto-finds Python,
+auto-installs the package on first run, and prints the framed demo:
 
 ```bash
-# Install (editable; pulls in rich + PyYAML)
+# Step 1 — open Git Bash in this directory.
+# Step 2:
+./demo.sh
+```
+
+Other modes:
+
+```bash
+./demo.sh prod-restricted   # same plan, prod-restricted policy
+./demo.sh gov-airgapped     # same plan, air-gapped policy (every step blocked)
+./demo.sh audit             # pretty-print the most recent audit log
+./demo.sh tests             # run the 76-case test suite
+```
+
+If you'd rather run the underlying commands by hand:
+
+```bash
 pip install -e .
-
-# Run
 python -m claude_demo run cred-safety
-
-# Inspect the JSONL audit it wrote
 python -m claude_demo audit view runs/<run_id>.jsonl
 ```
 
