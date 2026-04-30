@@ -20,8 +20,10 @@ from typing import Callable
 # even as folders are renamed.
 EXAMPLES: dict[str, str] = {
     "cred-safety": "examples.cred_safety.run",
+    "browser-research": "examples.browser_research.run",
+    # Real Claude + real Playwright + real internet. Costs API tokens.
+    "research-assistant": "examples.research_assistant.run",
     # T2:
-    # "browser-research":  "examples.browser_research.run",
     # "multi-agent-mcp":   "examples.multi_agent_mcp.run",
 }
 
@@ -57,5 +59,42 @@ def register_run_subparser(sub: argparse._SubParsersAction) -> None:
         "--policy",
         default="default",
         help="Policy profile name (file under ./policies/<name>.yaml).",
+    )
+    # Currently only ``browser-research`` consumes ``--engine``; the
+    # other examples ignore it. Keeping the flag at the run-command
+    # level (vs. an opaque pass-through) means the CLI surface stays
+    # discoverable via ``--help``.
+    parser.add_argument(
+        "--engine",
+        choices=["fake", "playwright"],
+        default="fake",
+        help=(
+            "Browser engine for the browser-research example. "
+            "'fake' (default) is in-process; 'playwright' drives real "
+            "headless Chromium and requires `pip install -e \".[browser]\"`."
+        ),
+    )
+    parser.add_argument(
+        "--headed",
+        action="store_true",
+        help=(
+            "Show the browser window while it runs (browser-research + "
+            "--engine playwright only). Slows each op so the action is "
+            "watchable; useful for screencasts and live demos."
+        ),
+    )
+    # research-assistant flags. The other examples ignore these.
+    parser.add_argument(
+        "--topic",
+        default=None,
+        help="Topic for the research-assistant example (required for it).",
+    )
+    parser.add_argument(
+        "--output",
+        default=None,
+        help=(
+            "Output path for the research-assistant example. "
+            "Default: output/research.md."
+        ),
     )
     parser.set_defaults(func=run_command)

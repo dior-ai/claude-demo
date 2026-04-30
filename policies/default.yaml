@@ -13,10 +13,11 @@ tools:
   default:
     decision: allow
 
-# Egress allowlist for the credential proxy. The proxy refuses to read or
-# substitute any secret unless the target host is on this list.
+# Egress allowlist for the credential proxy AND the browser proxy. Both
+# refuse to contact any host not on this list.
 http_allowlist:
   - api.local
+  - shop.local
 
 # Code patterns blocked when ``code_runner`` is invoked. The runtime never
 # sees these — the policy hook short-circuits with a descriptive error so
@@ -32,3 +33,18 @@ forbidden_code_patterns:
     reason: spawning subprocesses is forbidden in the sandbox
   - pattern: "os.system"
     reason: shell escape is forbidden in the sandbox
+
+# Per-op verdicts for the browser tool. Anything not listed inherits the
+# tool-level decision for ``browser_tool`` (which falls through to
+# ``default`` here = allow).
+browser_ops: {}
+
+# Selectors that are off-limits regardless of which page declared them.
+# Substring match — keep it tight to avoid false positives.
+browser_forbidden_selectors:
+  - pattern: "card-number"
+    reason: credit-card fields are off-limits to the agent
+  - pattern: "cvv"
+    reason: card verification fields are off-limits to the agent
+  - pattern: "password"
+    reason: password fields are off-limits to the agent

@@ -10,7 +10,7 @@ from claude_demo.core.hooks import HookEngine, PreToolUseEvent
 from claude_demo.core.permissions import Decision
 from claude_demo.policy import as_pre_hook, load_policy
 from claude_demo.policy.loader import PolicyError
-from claude_demo.policy.schema import ForbiddenPattern, Policy
+from claude_demo.policy.schema import ForbiddenPattern, ForbiddenSelector, Policy
 
 POLICIES_DIR = Path(__file__).resolve().parent.parent / "policies"
 
@@ -134,6 +134,100 @@ class TestPolicyEvaluator(unittest.TestCase):
         event = PreToolUseEvent("http_request", {"body": "dangerous payload"})
         engine.fire_pre(event)
         self.assertFalse(event.blocked)
+
+
+class TestBrowserPolicyEvaluator(unittest.TestCase):
+    def _hook(self, policy: Policy, *, confirm_fn=None):
+        return HookEngine().add_pre(as_pre_hook(policy, confirm_fn=confirm_fn))
+
+    def test_browser_op_deny_blocks(self) -> None:
+        policy = Policy(
+            name="t",
+            description="",
+            browser_ops={"fill": Decision.DENY},
+        )
+        engine = self._hook(policy)
+        event = PreToolUseEvent(
+            "browser_tool", {"op": "fill", "selector": "#x", "value": "y"}
+        )
+        engine.fire_pre(event)
+        self.assertTrue(event.blocked)
+        self.assertIn("fill", event.block_reason)
+
+    def test_browser_op_allow_passes(self) -> None:
+        policy = Policy(
+            name="t",
+            description="",
+            browser_ops={"goto": Decision.ALLOW},
+        )
+        engine = self._hook(policy)
+        event = PreToolUseEvent(
+            "browser_tool", {"op": "goto", "url": "http://x.local"}
+        )
+        engine.fire_pre(event)
+        self.assertFalse(event.blocked)
+
+    def test_browser_forbidden_selector_blocks(self) -> None:
+        policy = Policy(
+            name="t",
+            description="",
+            browser_forbidden_selectors=(
+                ForbiddenSelector(pattern="card-number", reason="cc off-limits"),
+            ),
+        )
+        engine = self._hook(policy)
+        event = PreToolUseEvent(
+            "browser_tool",
+            {"op": "fill", "selector": "#card-number", "value": "..."},
+        )
+        engine.fire_pre(event)
+        self.assertTrue(event.blocked)
+        self.assertIn("card-number", event.block_reason)
+
+    def test_browser_forbidden_selector_only_for_browser_tool(self) -> None:
+        policy = Policy(
+            name="t",
+            description="",
+            browser_forbidden_selectors=(
+                ForbiddenSelector(pattern="card-number", reason="x"),
+            ),
+        )
+        engine = self._hook(policy)
+        # file_tool with a misleading "selector" key — not browser_tool.
+        event = PreToolUseEvent(
+            "file_tool", {"op": "read", "selector": "#card-number"}
+        )
+        engine.fire_pre(event)
+        self.assertFalse(event.blocked)
+
+    def test_browser_op_falls_back_to_tool_decision(self) -> None:
+        # No per-op rule, but tool-level says deny → all ops blocked.
+        policy = Policy(
+            name="t",
+            description="",
+            tool_rules={"browser_tool": Decision.DENY},
+        )
+        engine = self._hook(policy)
+        event = PreToolUseEvent("browser_tool", {"op": "goto", "url": "x"})
+        engine.fire_pre(event)
+        self.assertTrue(event.blocked)
+
+
+class TestBrowserPolicyLoader(unittest.TestCase):
+    def test_loads_browser_fields_from_default(self) -> None:
+        policy = load_policy(POLICIES_DIR / "default.yaml")
+        # Default doesn't restrict ops but does forbid sensitive selectors.
+        patterns = {fs.pattern for fs in policy.browser_forbidden_selectors}
+        self.assertIn("card-number", patterns)
+        self.assertIn("password", patterns)
+
+    def test_loads_browser_op_decision(self) -> None:
+        policy = load_policy(POLICIES_DIR / "prod-restricted.yaml")
+        self.assertEqual(policy.decide_browser_op("fill"), Decision.CONFIRM)
+
+    def test_gov_airgapped_denies_browser_at_tool_level(self) -> None:
+        policy = load_policy(POLICIES_DIR / "gov-airgapped.yaml")
+        self.assertEqual(policy.decide("browser_tool"), Decision.DENY)
 
 
 if __name__ == "__main__":

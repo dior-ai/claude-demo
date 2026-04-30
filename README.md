@@ -32,6 +32,7 @@ Other modes:
 ./demo.sh ui                # open the Textual operator console
 ./demo.sh audit             # pretty-print the most recent audit log
 ./demo.sh tests             # run the unit test suite (98 cases)
+./demo.sh browser-research-headed
 ```
 
 The `openai` mode needs `OPENAI_API_KEY`. GPT picks the trajectory

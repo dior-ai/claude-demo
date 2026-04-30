@@ -1,8 +1,14 @@
-"""``file_tool`` — read-only filesystem ops on a fixed input directory.
+"""``file_tool`` — gated filesystem ops on a fixed workspace directory.
 
 Path traversal is blocked: any name resolving outside the directory is
-rejected. The tool exposes four ops: list, stat, head, read. No write,
-no delete, no execute — the directory is the boundary.
+rejected. The tool exposes up to six ops:
+
+  list, stat, head, read         — always available
+  write, append                  — only when constructed ``writable=True``
+
+No delete, no execute — the directory is the boundary, and writes
+require an explicit opt-in by the caller (research-assistant turns it
+on; the cred-safety / red-team substrate keeps it off).
 """
 
 from __future__ import annotations
@@ -13,8 +19,14 @@ from typing import Any
 from .base import Tool
 
 
-def make_file_tool(input_dir: Path) -> Tool:
-    """Tool factory: bind an input directory to a Tool."""
+def make_file_tool(input_dir: Path, *, writable: bool = False) -> Tool:
+    """Tool factory: bind a workspace directory to a Tool.
+
+    ``writable=False`` (default) — read-only behaviour preserved for
+    the existing scripted demos and the red-team suite.
+    ``writable=True`` — adds ``write`` and ``append`` ops so an agent
+    can produce output into the same path-safe boundary.
+    """
     input_dir = input_dir.resolve()
 
     def _safe_path(name: str) -> Path:
@@ -84,31 +96,82 @@ def make_file_tool(input_dir: Path) -> Tool:
                 )
             return data
 
-        return f"ERROR: unknown op '{op}'. Valid ops: list, stat, head, read."
+        if op in ("write", "append"):
+            if not writable:
+                return (
+                    f"ERROR: op '{op}' is not allowed "
+                    "(file_tool was constructed read-only)"
+                )
+            name = tool_input.get("name", "")
+            content = tool_input.get("content", "")
+            if not isinstance(content, str):
+                return "ERROR: 'content' must be a string"
+            try:
+                p = _safe_path(name)
+            except PermissionError as exc:
+                return f"ERROR: {exc}"
+            if p.exists() and p.is_dir():
+                return f"ERROR: '{name}' is a directory"
+            try:
+                p.parent.mkdir(parents=True, exist_ok=True)
+                if op == "write":
+                    p.write_text(content, encoding="utf-8")
+                else:
+                    with p.open("a", encoding="utf-8") as fh:
+                        fh.write(content)
+            except OSError as exc:
+                return f"ERROR: {exc}"
+            return f"OK {op} {p.name} ({len(content)} chars)"
 
-    return Tool(
-        name="file_tool",
-        description=(
+        valid = "list, stat, head, read" + (
+            ", write, append" if writable else ""
+        )
+        return f"ERROR: unknown op '{op}'. Valid ops: {valid}."
+
+    ops_enum = ["list", "stat", "head", "read"]
+    if writable:
+        ops_enum = ops_enum + ["write", "append"]
+
+    if writable:
+        description = (
+            "Filesystem ops on the workspace directory. Read ops: list "
+            "(no args), stat/head/read (require 'name'). Write ops: "
+            "write/append (require 'name' and 'content'). Path "
+            "traversal outside the workspace is rejected."
+        )
+    else:
+        description = (
             "Read-only filesystem inspection of the input directory. "
             "Operations: list (no args), stat/head/read (require 'name'). "
             "Path traversal outside the input directory is rejected."
-        ),
+        )
+
+    return Tool(
+        name="file_tool",
+        description=description,
         input_schema={
             "type": "object",
             "properties": {
                 "op": {
                     "type": "string",
-                    "enum": ["list", "stat", "head", "read"],
+                    "enum": ops_enum,
                     "description": "The operation to perform.",
                 },
                 "name": {
                     "type": "string",
-                    "description": "File name within the input directory (required for stat/head/read).",
+                    "description": "File name within the workspace directory.",
                 },
                 "lines": {
                     "type": "integer",
                     "description": "For op=head: number of lines to return (default 20).",
                     "default": 20,
+                },
+                "content": {
+                    "type": "string",
+                    "description": (
+                        "Text body for op=write or op=append. "
+                        "Ignored for other ops."
+                    ),
                 },
             },
             "required": ["op"],

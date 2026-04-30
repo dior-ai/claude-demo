@@ -14,7 +14,7 @@ from typing import Any
 import yaml
 
 from ..core.permissions import Decision
-from .schema import ForbiddenPattern, Policy
+from .schema import ForbiddenPattern, ForbiddenSelector, Policy
 
 SUPPORTED_VERSIONS = {1}
 
@@ -89,6 +89,36 @@ def _coerce_policy(data: dict[str, Any], source: str) -> Policy:
             )
         )
 
+    raw_browser_ops = data.get("browser_ops") or {}
+    if not isinstance(raw_browser_ops, dict):
+        raise PolicyError(f"{source}: 'browser_ops' must be a mapping")
+    browser_ops: dict[str, Decision] = {}
+    for op_name, rule in raw_browser_ops.items():
+        if not isinstance(rule, dict) or "decision" not in rule:
+            raise PolicyError(
+                f"{source}: browser_ops.{op_name} must be a mapping with a 'decision' key"
+            )
+        browser_ops[str(op_name)] = _decision_from_str(
+            rule["decision"], where=f"{source}: browser_ops.{op_name}"
+        )
+
+    raw_selectors = data.get("browser_forbidden_selectors") or []
+    if not isinstance(raw_selectors, list):
+        raise PolicyError(f"{source}: 'browser_forbidden_selectors' must be a list")
+    selectors = []
+    for entry in raw_selectors:
+        if not isinstance(entry, dict) or "pattern" not in entry:
+            raise PolicyError(
+                f"{source}: each browser_forbidden_selectors entry must be a "
+                f"mapping with a 'pattern' key"
+            )
+        selectors.append(
+            ForbiddenSelector(
+                pattern=str(entry["pattern"]),
+                reason=str(entry.get("reason", "forbidden selector")),
+            )
+        )
+
     return Policy(
         name=str(name),
         description=str(description),
@@ -96,6 +126,8 @@ def _coerce_policy(data: dict[str, Any], source: str) -> Policy:
         default_decision=default_decision,
         http_allowlist=http_allowlist,
         forbidden_code_patterns=tuple(patterns),
+        browser_ops=browser_ops,
+        browser_forbidden_selectors=tuple(selectors),
     )
 
 

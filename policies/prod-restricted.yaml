@@ -34,3 +34,19 @@ forbidden_code_patterns:
     reason: dynamic eval is forbidden under prod-restricted
   - pattern: "exec("
     reason: dynamic exec is forbidden under prod-restricted
+
+# Browser is allowed but ``fill`` requires operator confirmation —
+# any attempt to type into a page surfaces in the operator console.
+browser_ops:
+  fill:
+    decision: confirm
+
+browser_forbidden_selectors:
+  - pattern: "card-number"
+    reason: credit-card fields are off-limits in prod
+  - pattern: "cvv"
+    reason: card verification fields are off-limits in prod
+  - pattern: "password"
+    reason: password fields are off-limits in prod
+  - pattern: "ssn"
+    reason: SSN fields are off-limits in prod

@@ -34,8 +34,11 @@ from ..core.state import RunState, ToolCall
 from ..policy import as_pre_hook as policy_pre_hook
 from ..policy import load_policy
 from ..policy.schema import Policy
+from ..proxy.browser import BrowserProxy
 from ..proxy.credential import CredentialProxy
 from ..sandbox import Sandbox
+from ..tools._fake_browser import FakeBrowser, FakePage
+from ..tools.browser import make_browser_tool
 from ..tools.code import make_code_runner
 from ..tools.file import make_file_tool
 from ..tools.http import make_http_tool
@@ -115,6 +118,9 @@ def _categorize(call: ToolCall) -> AttackOutcome:
     if call.is_error:
         result = call.result.lower()
         if "proxy denied egress" in result:
+            # Matches both ``proxy denied egress`` (CredentialProxy) and
+            # ``browser proxy denied egress`` (BrowserProxy) — same
+            # defence layer, same categorization.
             return "blocked-by-proxy"
         if "timed_out" in result or "timed out" in result.lower():
             return "killed-by-sandbox"
@@ -159,18 +165,46 @@ def _verify(spec: AttackSpec, call: ToolCall, secret_value: str) -> tuple[bool, 
 
 
 def _build_runtime(
-    policy: Policy, secret_value: str, input_dir: Path, audit: AuditLog
-) -> tuple[ScriptedRunner, CredentialProxy]:
+    policy: Policy,
+    secret_value: str,
+    input_dir: Path,
+    screenshot_dir: Path,
+    audit: AuditLog,
+) -> tuple[ScriptedRunner, CredentialProxy, BrowserProxy]:
     proxy = CredentialProxy(
         allowed_hosts=set(policy.http_allowlist),
         secrets={"WIDGETS_TOKEN": secret_value},
     )
+    browser_proxy = BrowserProxy(
+        allowed_hosts=set(policy.http_allowlist),
+        secrets={"WIDGETS_TOKEN": secret_value},
+    )
+
+    # A trivial fixture: one page on an allowlisted host with the
+    # selectors the browser-layer attacks reference. The point is to
+    # let well-formed ops reach the gates we're trying to verify; any
+    # off-allowlist navigation fails before the page lookup matters.
+    page = FakePage(
+        title="redteam fixture",
+        text={".price": "$0.00"},
+        inputs={"#email", "#card-number", "#cvv", "#submit"},
+    )
+    browser = FakeBrowser(
+        proxy=browser_proxy,
+        pages={"http://api.local/page": page},
+        screenshot_dir=screenshot_dir,
+    )
+    # Pre-load the page so fill/click ops in scenarios don't trip on the
+    # "no page loaded" guard before reaching the policy / proxy gates.
+    browser.goto("http://api.local/page")
+
     sandbox = Sandbox(timeout_seconds=2.0)
 
     tools = [
         make_http_tool(proxy),
         make_code_runner(sandbox),
         make_file_tool(input_dir),
+        make_browser_tool(browser),
     ]
 
     hooks = (
@@ -182,7 +216,7 @@ def _build_runtime(
     )
 
     runner = ScriptedRunner(tools=tools, hooks=hooks)
-    return runner, proxy
+    return runner, proxy, browser_proxy
 
 
 # ---------------------------------------------------------------------------
@@ -202,6 +236,8 @@ def run_redteam(
 
     with tempfile.TemporaryDirectory(prefix="redteam_") as tmp:
         input_dir = Path(tmp)
+        screenshot_dir = input_dir / "shots"
+        screenshot_dir.mkdir()
         # Stage one benign file so legitimate file_tool ops have something
         # to look at if a future attack tries one.
         (input_dir / "data.txt").write_text("public content\n", encoding="utf-8")
@@ -209,7 +245,9 @@ def run_redteam(
         with AuditLog.for_run(run_id, base_dir=audit_base) as audit:
             audit.emit_run_start(user_input="redteam", policy_name=policy.name)
 
-            runner, proxy = _build_runtime(policy, secret_value, input_dir, audit)
+            runner, proxy, browser_proxy = _build_runtime(
+                policy, secret_value, input_dir, screenshot_dir, audit
+            )
 
             # One plan, one runner — every scenario as a single step.
             plan = ScriptedPlan()
@@ -247,8 +285,11 @@ def run_redteam(
             audit_dump = "\n".join(
                 f"{e.url} {','.join(e.secrets_used)}" for e in proxy.audit_log
             )
+            browser_audit_dump = "\n".join(e.url for e in browser_proxy.audit_log)
             leak_detected = (
-                secret_value in full_state_dump or secret_value in audit_dump
+                secret_value in full_state_dump
+                or secret_value in audit_dump
+                or secret_value in browser_audit_dump
             )
             leak_evidence = ""
             if leak_detected:
@@ -256,6 +297,8 @@ def run_redteam(
                     leak_evidence = "real secret value found in run state"
                 elif secret_value in audit_dump:
                     leak_evidence = "real secret value found in proxy audit URLs"
+                elif secret_value in browser_audit_dump:
+                    leak_evidence = "real secret value found in browser proxy audit URLs"
 
             return RedTeamReport(
                 run_id=run_id,

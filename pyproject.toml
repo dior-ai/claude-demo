@@ -38,6 +38,13 @@ openai = ["openai>=1.40.0"]
 ui = [
     "textual>=0.80.0",
 ]
+# Real browser engine for the browser-research demo. Pulls Chromium
+# (~250MB) on first run via `playwright install chromium`. The
+# default browser-research demo uses the in-process FakeBrowser and
+# does NOT need this extra.
+browser = [
+    "playwright>=1.40.0",
+]
 
 [project.scripts]
 claude-demo = "claude_demo.cli.__main__:main"

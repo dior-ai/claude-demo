@@ -1,0 +1,60 @@
+# Research-mode policy — for the LLM-driven research-assistant example.
+#
+# The agent gets two tools (browser_tool, file_tool) and is allowed to
+# browse a small list of vendor doc sites + Wikipedia. Code execution,
+# bash, and raw HTTP are all denied: research uses the browser, period.
+#
+# This is a STARTER allowlist — operators are expected to edit it for
+# their own research domain. The point is that ONE YAML file is the
+# blast-radius limit; nothing else needs to change.
+
+version: 1
+metadata:
+  name: research-mode
+  description: LLM-driven research assistant — gated browsing + scoped writes.
+
+tools:
+  # Default-deny. Anything not explicitly allowed below is refused.
+  default:
+    decision: deny
+  browser_tool:
+    decision: allow
+  file_tool:
+    decision: allow
+  http_request:
+    decision: deny
+  code_runner:
+    decision: deny
+  bash:
+    decision: deny
+
+# Hosts the browser may navigate to. Real domains — the agent really
+# does GET these over the real internet. Edit for your research scope.
+http_allowlist:
+  - anthropic.com
+  - www.anthropic.com
+  - docs.anthropic.com
+  - openai.com
+  - platform.openai.com
+  - github.com
+  - api.github.com
+  - raw.githubusercontent.com
+  - en.wikipedia.org
+
+forbidden_code_patterns: []
+
+# No per-op overrides — all browser ops inherit the tool-level allow.
+browser_ops: {}
+
+# Sensitive selectors stay forbidden even in research mode. Research
+# never needs to fill in a credit card or password — if the agent
+# tries, that's a prompt-injection signal, not a legitimate need.
+browser_forbidden_selectors:
+  - pattern: "card-number"
+    reason: payment fields are off-limits to the agent
+  - pattern: "cvv"
+    reason: card verification fields are off-limits to the agent
+  - pattern: "password"
+    reason: password fields are off-limits to the agent
+  - pattern: "ssn"
+    reason: SSN fields are off-limits to the agent

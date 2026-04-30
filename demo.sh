@@ -90,6 +90,54 @@ case "$CMD" in
     "$PY" -m claude_demo run cred-safety --policy "$CMD"
     ;;
 
+  browser-research)
+    "$PY" -m claude_demo run browser-research
+    ;;
+
+  browser-research-playwright)
+    if ! "$PY" -c "import playwright" 2>/dev/null; then
+      echo ">>> Installing playwright (one-time)..."
+      "$PY" -m pip install -e ".[browser]" --quiet
+      echo ">>> Installing chromium (one-time, ~250MB)..."
+      "$PY" -m playwright install chromium
+    fi
+    "$PY" -m claude_demo run browser-research --engine playwright
+    ;;
+
+  browser-research-headed)
+    if ! "$PY" -c "import playwright" 2>/dev/null; then
+      echo ">>> Installing playwright (one-time)..."
+      "$PY" -m pip install -e ".[browser]" --quiet
+      echo ">>> Installing chromium (one-time, ~250MB)..."
+      "$PY" -m playwright install chromium
+    fi
+    "$PY" -m claude_demo run browser-research --engine playwright --headed
+    ;;
+
+  research-assistant)
+    if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+      echo "ERROR: ANTHROPIC_API_KEY is not set." >&2
+      echo "  export ANTHROPIC_API_KEY=sk-ant-..." >&2
+      exit 1
+    fi
+    if [ -z "${TOPIC:-}" ]; then
+      echo "ERROR: set TOPIC env var to what you want researched." >&2
+      echo "  Example: TOPIC='Anthropic Claude API pricing' ./demo.sh research-assistant" >&2
+      exit 1
+    fi
+    if ! "$PY" -c "import anthropic" 2>/dev/null; then
+      echo ">>> Installing anthropic SDK (one-time)..."
+      "$PY" -m pip install -e ".[llm]" --quiet
+    fi
+    if ! "$PY" -c "import playwright" 2>/dev/null; then
+      echo ">>> Installing playwright (one-time)..."
+      "$PY" -m pip install -e ".[browser]" --quiet
+      echo ">>> Installing chromium (one-time, ~250MB)..."
+      "$PY" -m playwright install chromium
+    fi
+    "$PY" -m claude_demo run research-assistant --topic "$TOPIC"
+    ;;
+
   openai)
     if [ -z "${OPENAI_API_KEY:-}" ]; then
       echo "ERROR: OPENAI_API_KEY is not set." >&2
@@ -123,9 +171,20 @@ Usage:
   ./demo.sh                    Run the cred-safety demo with the default policy
   ./demo.sh prod-restricted    Same demo, prod-restricted policy
   ./demo.sh gov-airgapped      Same demo, air-gapped policy (every step blocked)
+  ./demo.sh browser-research   Browser-driven demo (in-process FakeBrowser)
+  ./demo.sh browser-research-playwright
+                                Same demo, real headless Chromium
+                                (auto-installs playwright + chromium on first run)
+  ./demo.sh browser-research-headed
+                                Same demo, real Chromium with the WINDOW VISIBLE
+                                and slowed down so you can watch each op fire
+  TOPIC='...' ./demo.sh research-assistant
+                                Real Claude + real Playwright + real internet.
+                                Costs API tokens. Writes output/research.md.
+                                Requires ANTHROPIC_API_KEY.
   ./demo.sh openai             OpenAI-driven demo with prompt-injection test
                                  (requires OPENAI_API_KEY)
-  ./demo.sh redteam            Fire 20+ adversarial scenarios at the runtime
+  ./demo.sh redteam            Fire 25+ adversarial scenarios at the runtime
   ./demo.sh ui                 Open the Textual operator console
   ./demo.sh audit              Pretty-print the most recent audit log
   ./demo.sh tests              Run the full unit test suite

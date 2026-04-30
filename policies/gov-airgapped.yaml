@@ -19,11 +19,13 @@ tools:
     decision: deny
   http_request:
     decision: deny
+  browser_tool:
+    decision: deny
   bash:
     decision: deny
 
 # Empty allowlist = no host can be contacted, even by ``http_request``
-# (which is also denied above; defence in depth).
+# or ``browser_tool`` (both also denied above; defence in depth).
 http_allowlist: []
 
 # Belt-and-braces: even if a future operator flips ``code_runner`` to
@@ -39,3 +41,14 @@ forbidden_code_patterns:
     reason: no subprocess execution in air-gapped policy
   - pattern: "os.system"
     reason: no shell escape in air-gapped policy
+
+# Browser is denied at the tool level above; the per-op block here is
+# defence in depth. If a future operator flips ``browser_tool`` to
+# allow, ``fill`` and ``click`` still cannot fire.
+browser_ops:
+  fill:
+    decision: deny
+  click:
+    decision: deny
+
+browser_forbidden_selectors: []
